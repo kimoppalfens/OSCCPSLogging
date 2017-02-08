@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Management.Automation;
 using Log4Net_CMTrace;
+using System.IO;
+using System.Reflection;
 
 
 namespace OSCCPSLogging
@@ -13,9 +15,10 @@ namespace OSCCPSLogging
     [Cmdlet(VerbsData.Initialize,"CMLogging")]
     public class OSCCPSLogging : PSCmdlet
      {
-        
-        log4net.ILog logger;
-        private string _logConfigFile;
+
+        //log4net.ILog logger;
+
+        private string _logConfigFile = string.Concat(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"\logging.config");
 
         [Parameter(
             Mandatory = false,
@@ -26,7 +29,7 @@ namespace OSCCPSLogging
         public string LogConfigFile
         {
             get { return _logConfigFile; }
-            set { _logConfigFile = value; }
+            set { _logConfigFile = value;}
         }
 
 
@@ -41,8 +44,12 @@ namespace OSCCPSLogging
         {
             //base.ProcessRecord();
             //log4net.LogManager logManager;
+            
 
-            logger = log4net.LogManager.GetLogger("Powershell");
+
+            Console.WriteLine(_logConfigFile);
+            log4net.ILog logger = log4net.LogManager.GetLogger("Powershell");
+
             System.IO.FileInfo logFileInfo = new System.IO.FileInfo(_logConfigFile);
             log4net.Config.XmlConfigurator.ConfigureAndWatch(logFileInfo);
             WriteObject(logger);
