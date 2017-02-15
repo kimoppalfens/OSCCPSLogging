@@ -7,49 +7,156 @@ using System.Management.Automation;
 using Log4Net_CMTrace;
 using System.IO;
 using System.Reflection;
+using System.Diagnostics;
 
 
-//Todo override console level
-
-//TODO  if host is ISE disable Colored Console Appender & enable Console appender for Info by default
-//todo if host is PSHost default colored console appender, set variable to disable colored console
-
-//console appender config file = x
-//colored console appender config file = x
-
-//ConsoleAppender
-//done
-//if host is ise
-// if consoleloglevel is set set to value
-// if consoleloglevel not set keep value => do nothing
-
-//done
-// if host is console host
-// if multicolored is false
-//    if consoleloglevel is set set to value
-//    if consoleloglevel is not set => do nothing
-// if multicolored is true
-//  set threshold to off
-
-//coloredconsole appender
-// if  host is ise
-//   if multicolored specified
-//     writeline multicolored not supported
-//   if multicolored not specified
-//     set threshold to off
-
-//done
-// if host is console
-//  if multicolored = false
-//     set threshold to off
-// if multicolored = true
-//   if consoleloglevel is set set to value
-//  if consoleloglevel not set => do nothing
 
 namespace OSCCPSLogging
 {
-//Todo add properties
-//Todo Paramater validation
+
+    [Cmdlet(VerbsData.Out, "LogInfo")]
+    public class OSCCPSLogInfo : PSCmdlet
+    {
+        private log4net.ILog _logObject;
+        [Parameter(
+        Mandatory = false,
+        ValueFromPipeline = true,
+        ValueFromPipelineByPropertyName = true,
+        Position = 0,
+        HelpMessage = @"Specify a logger object as created by the Initialize-CMLogging Cmdlet")]
+
+        public log4net.ILog LogObject
+        {
+            get { return _logObject; }
+            set { _logObject = value; }
+        }
+        private string _logMessage;
+        [Parameter(
+        Mandatory = false,
+        ValueFromPipeline = true,
+        ValueFromPipelineByPropertyName = true,
+        Position = 1,
+        HelpMessage = @"Specify the message to log")]
+
+        public string LogMessage
+        {
+            get { return _logMessage; }
+            set { _logMessage = value; }
+        }
+        protected override void ProcessRecord()
+        {
+            _logObject.Logger.Repository.
+            _logObject.Info(_logMessage);
+        }
+    }
+
+    //Todo add properties
+    //Todo Paramater validation
+
+    [Cmdlet(VerbsData.Out, "LogWarn")]
+    public class OSCCPSLogWarn : PSCmdlet
+    {
+        private log4net.ILog _logObject;
+        [Parameter(
+        Mandatory = false,
+        ValueFromPipeline = true,
+        ValueFromPipelineByPropertyName = true,
+        Position = 0,
+        HelpMessage = @"Specify a logger object as created by the Initialize-CMLogging Cmdlet")]
+
+        public log4net.ILog LogObject
+        {
+            get { return _logObject; }
+            set { _logObject = value; }
+        }
+        private string _logMessage;
+        [Parameter(
+        Mandatory = false,
+        ValueFromPipeline = true,
+        ValueFromPipelineByPropertyName = true,
+        Position = 1,
+        HelpMessage = @"Specify the message to log")]
+
+        public string LogMessage
+        {
+            get { return _logMessage; }
+            set { _logMessage = value; }
+        }
+        protected override void ProcessRecord()
+        {
+            _logObject.Warn(_logMessage);
+        }
+    }
+
+    [Cmdlet(VerbsData.Out, "LogError")]
+    public class OSCCPSLogError : PSCmdlet
+    {
+        private log4net.ILog _logObject;
+        [Parameter(
+        Mandatory = false,
+        ValueFromPipeline = true,
+        ValueFromPipelineByPropertyName = true,
+        Position = 0,
+        HelpMessage = @"Specify a logger object as created by the Initialize-CMLogging Cmdlet")]
+
+        public log4net.ILog LogObject
+        {
+            get { return _logObject; }
+            set { _logObject = value; }
+        }
+        private string _logMessage;
+        [Parameter(
+        Mandatory = false,
+        ValueFromPipeline = true,
+        ValueFromPipelineByPropertyName = true,
+        Position = 1,
+        HelpMessage = @"Specify the message to log")]
+
+        public string LogMessage
+        {
+            get { return _logMessage; }
+            set { _logMessage = value; }
+        }
+        protected override void ProcessRecord()
+        {
+            _logObject.Error(_logMessage);
+        }
+    }
+
+    [Cmdlet(VerbsData.Out, "LogDebug")]
+    public class OSCCPSLogDebug : PSCmdlet
+    {
+        private log4net.ILog _logObject;
+        [Parameter(
+        Mandatory = false,
+        ValueFromPipeline = true,
+        ValueFromPipelineByPropertyName = true,
+        Position = 0,
+        HelpMessage = @"Specify a logger object as created by the Initialize-CMLogging Cmdlet")]
+
+        public log4net.ILog LogObject
+        {
+            get { return _logObject; }
+            set { _logObject = value; }
+        }
+        private string _logMessage;
+        [Parameter(
+        Mandatory = false,
+        ValueFromPipeline = true,
+        ValueFromPipelineByPropertyName = true,
+        Position = 1,
+        HelpMessage = @"Specify the message to log")]
+
+        public string LogMessage
+        {
+            get { return _logMessage; }
+            set { _logMessage = value; }
+        }
+        protected override void ProcessRecord()
+        {
+            _logObject.Debug(_logMessage);
+        }
+    }
     [Cmdlet(VerbsData.Initialize,"CMLogging")]
     public class OSCCPSLogging : PSCmdlet
      {
@@ -103,7 +210,6 @@ namespace OSCCPSLogging
         ValueFromPipelineByPropertyName = true,
         Position = 3,
         HelpMessage = "Specify a loglevel for the console, supported values are off, info, warn, error, debug.")]
-
         public string ConsoleLogLevel
         {
             get { return _consoleLogLevel; }
@@ -122,14 +228,11 @@ namespace OSCCPSLogging
             set { _multiColor = value; }
         }
 
-        //protected override void BeginProcessing()
-        //{
-        //    base.BeginProcessing();
-        //    Log4Net_CMTrace.NumericLevelPatternConverter s = new Log4Net_CMTrace.NumericLevelPatternConverter();
-        //}
-
         protected override void ProcessRecord()
         {
+            //todo set default to scriptname.log
+            string test = MyInvocation.ScriptName;
+
             log4net.ILog logger = log4net.LogManager.GetLogger("Powershell");
             System.IO.FileInfo logFileInfo = new System.IO.FileInfo(_logConfigFile);
             log4net.Config.XmlConfigurator.ConfigureAndWatch(logFileInfo);
@@ -144,7 +247,20 @@ namespace OSCCPSLogging
                     log4net.Appender.FileAppender fileAppender = (log4net.Appender.RollingFileAppender)logAppender;
                     if (MyInvocation.BoundParameters.ContainsKey("LogFileName"))
                     {
-                        fileAppender.File = LogFileName;
+
+                        log4net.Util.PatternString dynamicFileName = new log4net.Util.PatternString(LogFileName);
+                        log4net.Util.ConverterInfo adminuiLogConverterInfo = new log4net.Util.ConverterInfo();
+                        adminuiLogConverterInfo.Name = "adminuilog";
+                        adminuiLogConverterInfo.Type = typeof(Log4Net_CMTrace.CMAdminUILogFolderPatternConverter);
+                        log4net.Util.ConverterInfo ccmLogConverterInfo = new log4net.Util.ConverterInfo();
+                        ccmLogConverterInfo.Name = "ccmlog";
+                        ccmLogConverterInfo.Type = typeof(Log4Net_CMTrace.CMClientLogFolderPatternConverter);
+                        log4net.Layout.PatternLayout newLayout = new log4net.Layout.PatternLayout();
+                        dynamicFileName.AddConverter(adminuiLogConverterInfo);
+                        dynamicFileName.AddConverter(ccmLogConverterInfo);
+                        dynamicFileName.ActivateOptions();
+                        //fileAppender.File = LogFileName;
+                        fileAppender.File = dynamicFileName.Format();
                     }
                     if (MyInvocation.BoundParameters.ContainsKey("FileLogLevel"))
                     {
