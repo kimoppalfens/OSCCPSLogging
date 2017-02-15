@@ -45,7 +45,6 @@ namespace OSCCPSLogging
         }
         protected override void ProcessRecord()
         {
-            _logObject.Logger.Repository.
             _logObject.Info(_logMessage);
         }
     }
@@ -262,6 +261,11 @@ namespace OSCCPSLogging
                         //fileAppender.File = LogFileName;
                         fileAppender.File = dynamicFileName.Format();
                     }
+                    else
+                    {
+                        if (MyInvocation.ScriptName != "")
+                        { fileAppender.File = MyInvocation.ScriptName + ".log"; }
+                    }
                     if (MyInvocation.BoundParameters.ContainsKey("FileLogLevel"))
                     {
                         switch (FileLogLevel.ToLower())
@@ -275,9 +279,7 @@ namespace OSCCPSLogging
                         }
                     }
                     else
-                    {
-                        fileAppender.Threshold = log4net.Core.Level.Info;
-                    }
+                    {  fileAppender.Threshold = log4net.Core.Level.Info;}
                     fileAppender.ActivateOptions();
                 }
                 #endregion
