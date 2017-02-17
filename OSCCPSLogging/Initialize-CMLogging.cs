@@ -17,6 +17,7 @@ namespace OSCCPSLogging
     [Cmdlet(VerbsData.Out, "LogInfo")]
     public class OSCCPSLogInfo : PSCmdlet
     {
+        
         private log4net.ILog _logObject;
         [Parameter(
         Mandatory = false,
@@ -45,6 +46,8 @@ namespace OSCCPSLogging
         }
         protected override void ProcessRecord()
         {
+            log4net.GlobalContext.Properties["ScriptName"] = MyInvocation.ScriptName;
+            log4net.GlobalContext.Properties["ScriptLine"] = MyInvocation.ScriptLineNumber;
             _logObject.Info(_logMessage);
         }
     }
@@ -81,8 +84,12 @@ namespace OSCCPSLogging
             get { return _logMessage; }
             set { _logMessage = value; }
         }
+
+
         protected override void ProcessRecord()
         {
+            log4net.GlobalContext.Properties["ScriptName"] = MyInvocation.ScriptName;
+            log4net.GlobalContext.Properties["ScriptLine"] = MyInvocation.ScriptLineNumber;
             _logObject.Warn(_logMessage);
         }
     }
@@ -118,6 +125,8 @@ namespace OSCCPSLogging
         }
         protected override void ProcessRecord()
         {
+            log4net.GlobalContext.Properties["ScriptName"] = MyInvocation.ScriptName;
+            log4net.GlobalContext.Properties["ScriptLine"] = MyInvocation.ScriptLineNumber;
             _logObject.Error(_logMessage);
         }
     }
@@ -153,6 +162,8 @@ namespace OSCCPSLogging
         }
         protected override void ProcessRecord()
         {
+            log4net.GlobalContext.Properties["ScriptName"] = MyInvocation.ScriptName;
+            log4net.GlobalContext.Properties["ScriptLine"] = MyInvocation.ScriptLineNumber;
             _logObject.Debug(_logMessage);
         }
     }
@@ -226,9 +237,39 @@ namespace OSCCPSLogging
             get { return _multiColor; }
             set { _multiColor = value; }
         }
+        private string _OMSfileLogLevel = "Info";
+        [ValidateSet("off", "info", "warn", "error", "debug", IgnoreCase = true)]
+        [Parameter(
+        Mandatory = false,
+        ValueFromPipeline = true,
+        ValueFromPipelineByPropertyName = true,
+        Position = 5,
+        HelpMessage = "Specify a loglevel for the OMS Formatted logfile, supported values are off, info, warn, error, debug. Default value is OFF")]
+
+        public string OMSFileLogLevel
+        {
+            get { return _OMSfileLogLevel; }
+            set { _OMSfileLogLevel = value; }
+        }
+
+        private string _OMSlogFileName;
+        [Parameter(
+        Mandatory = false,
+        ValueFromPipeline = true,
+        ValueFromPipelineByPropertyName = true,
+        Position = 6,
+        HelpMessage = @"Specify the full path including filename to an OMS formatted log file to be created or appended to.")]
+
+        public string OMSLogFileName
+        {
+            get { return _OMSlogFileName; }
+            set { _OMSlogFileName = value; }
+        }
+
 
         protected override void ProcessRecord()
         {
+    
             //todo set default to scriptname.log
             string test = MyInvocation.ScriptName;
 
@@ -241,12 +282,11 @@ namespace OSCCPSLogging
             foreach (log4net.Appender.IAppender logAppender in appenders)
             {
                 #region RollingFilleAppender
-                if (logAppender.GetType() == typeof(log4net.Appender.RollingFileAppender))
+                if ((logAppender.GetType() == typeof(log4net.Appender.RollingFileAppender)) && logAppender.Name == "OSCCDefaultRollingFileAppender")
                 {
                     log4net.Appender.FileAppender fileAppender = (log4net.Appender.RollingFileAppender)logAppender;
                     if (MyInvocation.BoundParameters.ContainsKey("LogFileName"))
                     {
-
                         log4net.Util.PatternString dynamicFileName = new log4net.Util.PatternString(LogFileName);
                         log4net.Util.ConverterInfo adminuiLogConverterInfo = new log4net.Util.ConverterInfo();
                         adminuiLogConverterInfo.Name = "adminuilog";
@@ -280,6 +320,49 @@ namespace OSCCPSLogging
                     }
                     else
                     {  fileAppender.Threshold = log4net.Core.Level.Info;}
+                    fileAppender.ActivateOptions();
+                }
+                #endregion
+
+                #region OMSFilleAppender
+                if ((logAppender.GetType() == typeof(log4net.Appender.FileAppender)) && logAppender.Name == "OSCCOMSFileAppender")
+                {
+                    log4net.Appender.FileAppender fileAppender = (log4net.Appender.FileAppender)logAppender;
+                    if (MyInvocation.BoundParameters.ContainsKey("OMSLogFileName"))
+                    {
+                        log4net.Util.PatternString dynamicFileName = new log4net.Util.PatternString(LogFileName);
+                        log4net.Util.ConverterInfo adminuiLogConverterInfo = new log4net.Util.ConverterInfo();
+                        adminuiLogConverterInfo.Name = "adminuilog";
+                        adminuiLogConverterInfo.Type = typeof(Log4Net_CMTrace.CMAdminUILogFolderPatternConverter);
+                        log4net.Util.ConverterInfo ccmLogConverterInfo = new log4net.Util.ConverterInfo();
+                        ccmLogConverterInfo.Name = "ccmlog";
+                        ccmLogConverterInfo.Type = typeof(Log4Net_CMTrace.CMClientLogFolderPatternConverter);
+                        log4net.Layout.PatternLayout newLayout = new log4net.Layout.PatternLayout();
+                        dynamicFileName.AddConverter(adminuiLogConverterInfo);
+                        dynamicFileName.AddConverter(ccmLogConverterInfo);
+                        dynamicFileName.ActivateOptions();
+                        //fileAppender.File = LogFileName;
+                        fileAppender.File = dynamicFileName.Format();
+                    }
+                    else
+                    {
+                        if (MyInvocation.ScriptName != "")
+                        {
+
+                            fileAppender.File = MyInvocation.ScriptName + ".OMS." + DateTime.Today.ToString("yyyyMMdd") + ".log"; }
+                    }
+                    if (MyInvocation.BoundParameters.ContainsKey("OMSFileLogLevel"))
+                    {
+                        switch (FileLogLevel.ToLower())
+                        {
+                            case "off": fileAppender.Threshold = log4net.Core.Level.Off; break;
+                            case "info": fileAppender.Threshold = log4net.Core.Level.Info; break;
+                            case "warn": fileAppender.Threshold = log4net.Core.Level.Warn; break;
+                            case "error": fileAppender.Threshold = log4net.Core.Level.Error; break;
+                            case "debug": fileAppender.Threshold = log4net.Core.Level.Debug; break;
+                            default: fileAppender.Threshold = log4net.Core.Level.Info; break;
+                        }
+                    }
                     fileAppender.ActivateOptions();
                 }
                 #endregion
